@@ -20,6 +20,7 @@ pub(crate) mod graphql;
 pub(crate) mod indexer;
 pub(crate) mod metrics;
 pub(crate) mod middleware;
+pub(crate) mod lstm_load_balancer;
 pub(crate) mod ml_pipeline;
 pub(crate) mod p2p_topology;
 pub(crate) mod profiles;
