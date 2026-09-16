@@ -1,3 +1,4 @@
+pub mod escape_hatch;
 pub mod prover;
 pub mod sequencer;
 pub mod smt;
