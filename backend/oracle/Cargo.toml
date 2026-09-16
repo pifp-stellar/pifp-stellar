@@ -16,6 +16,8 @@ tokio = { version = "1", features = ["full"] }
 
 # HTTP server (health + metrics endpoints)
 axum = { version = "0.8", features = ["multipart"] }
+async-stream = "0.3"
+futures = "0.3"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
 
 # HTTP client for IPFS
@@ -48,7 +50,7 @@ ed25519-dalek = "2"
 k256 = { version = "0.13", features = ["arithmetic", "ecdsa", "serde"] }
 rand = "0.10"
 threshold_crypto = "0.4"
-libp2p = { version = "0.56", features = ["tcp", "tls", "dns", "noise", "yamux", "kad", "macros", "tokio"] }
+libp2p = { version = "0.56", features = ["tcp", "tls", "dns", "noise", "yamux", "kad", "gossipsub", "macros", "tokio"] }
 
 # Timestamps
 chrono = { version = "0.4", features = ["serde"] }

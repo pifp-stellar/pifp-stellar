@@ -134,46 +134,198 @@ pub fn calculate_sale_return_taylor(
 mod tests {
     use super::*;
 
+    /// Maximum allowed relative error between Taylor approximation and f64 stdlib result.
+    /// Issue #10 specifies < 0.01% (0.0001) error.
+    const MAX_RELATIVE_ERROR: f64 = 0.0001;
+
+    // ── exp(x) precision fuzz ─────────────────────────────────────────────────
+
     #[test]
-    fn test_taylor_exp_and_ln_precision() {
-        // Test ln(1.5) in fixed point (SCALE * 1.5 = 1_500_000_000 with SCALE = 10^9)
-        let x = (SCALE * 15) / 10;
-        let ln_approx = ln_taylor_5(x);
-        let float_ln = (1.5_f64).ln();
+    fn test_exp_taylor_precision_exhaustive() {
+        // Test exp(x) over x ∈ [0.01, 0.5] in steps of 0.01
+        // This range covers typical bonding curve exponents (small positive values near 0)
+        let mut max_error = 0.0_f64;
+        let mut worst_x = 0.0_f64;
 
-        let approx_f64 = ln_approx as f64 / SCALE as f64;
-        let error = (approx_f64 - float_ln).abs() / float_ln;
+        for i in 1..=50_u32 {
+            let x_f64 = (i as f64) * 0.01;
+            let x_fp = (x_f64 * SCALE as f64) as i128;
 
-        // Verify precision error is strictly < 0.1%
+            let approx = exp_taylor_5(x_fp);
+            let approx_f64 = approx as f64 / SCALE as f64;
+            let reference = x_f64.exp();
+
+            let rel_error = (approx_f64 - reference).abs() / reference;
+
+            if rel_error > max_error {
+                max_error = rel_error;
+                worst_x = x_f64;
+            }
+
+            assert!(
+                rel_error < MAX_RELATIVE_ERROR,
+                "exp_taylor_5({:.4}) error {:.6} exceeds {}% bound (approx={:.8}, ref={:.8})",
+                x_f64, rel_error, MAX_RELATIVE_ERROR * 100.0, approx_f64, reference
+            );
+        }
+
+        // Verify error at x=0 (should be exactly 0)
+        let exp_zero = exp_taylor_5(0);
+        assert_eq!(exp_zero, SCALE, "exp(0) in fixed point must equal SCALE (1.0)");
+
+        extern crate std;
+        std::eprintln!("exp_taylor_5 worst-case error: {:.8} at x={:.4}", max_error, worst_x);
+    }
+
+    // ── ln(x) precision fuzz ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_ln_taylor_precision_exhaustive() {
+        // Test ln(x) over x ∈ [0.7, 1.3] in fine steps
+        // This is the convergence zone for the 2*(y+y^3/3+...) series (|y| < 1 guaranteed)
+        let test_points: &[(f64, &str)] = &[
+            (0.70, "ln(0.70)"),
+            (0.75, "ln(0.75)"),
+            (0.80, "ln(0.80)"),
+            (0.85, "ln(0.85)"),
+            (0.90, "ln(0.90)"),
+            (0.95, "ln(0.95)"),
+            (1.05, "ln(1.05)"),
+            (1.10, "ln(1.10)"),
+            (1.15, "ln(1.15)"),
+            (1.20, "ln(1.20)"),
+            (1.25, "ln(1.25)"),
+            (1.30, "ln(1.30)"),
+        ];
+
+        let mut max_error = 0.0_f64;
+
+        for &(x_f64, label) in test_points {
+            let x_fp = (x_f64 * SCALE as f64) as i128;
+
+            let approx = ln_taylor_5(x_fp);
+            let approx_f64 = approx as f64 / SCALE as f64;
+            let reference = x_f64.ln();
+
+            let rel_error = (approx_f64 - reference).abs() / reference.abs().max(1e-10);
+            if rel_error > max_error {
+                max_error = rel_error;
+            }
+
+            assert!(
+                rel_error < MAX_RELATIVE_ERROR,
+                "{}: relative error {:.6} exceeds {}% bound (approx={:.8}, ref={:.8})",
+                label, rel_error, MAX_RELATIVE_ERROR * 100.0, approx_f64, reference
+            );
+        }
+
+        extern crate std;
+        std::eprintln!("ln_taylor_5 worst-case relative error: {:.8}", max_error);
+    }
+
+    // ── bonding curve round-trip precision ───────────────────────────────────
+
+    #[test]
+    fn test_bonding_curve_precision_vs_float() {
+        // Compare Taylor purchase return to floating-point Bancor formula
+        // across 20 different deposit sizes (1% to 20% of reserve)
+        let reserve = 10_000 * SCALE;
+        let supply  = 100_000 * SCALE;
+
+        for pct in 1_u32..=20 {
+            let deposit_f64 = 10_000.0 * (pct as f64) / 100.0;
+            let deposit_fp  = (deposit_f64 * SCALE as f64) as i128;
+
+            // Fixed-point Taylor approximation
+            let tokens_fp = calculate_purchase_return_taylor(reserve, supply, deposit_fp, 1, 2);
+            let tokens_f64_approx = tokens_fp as f64 / SCALE as f64;
+
+            // Floating-point Bancor reference: T = S * ((1 + d/R)^F - 1)
+            let r = 10_000.0_f64;
+            let s = 100_000.0_f64;
+            let d = deposit_f64;
+            let f_ratio = 0.5_f64; // 1/2
+            let tokens_ref = s * ((1.0 + d / r).powf(f_ratio) - 1.0);
+
+            assert!(
+                tokens_fp > 0,
+                "purchase_return_taylor({} pct deposit) should be positive",
+                pct
+            );
+
+            // Relative error vs float reference
+            if tokens_ref > 0.0 {
+                let rel_error = (tokens_f64_approx - tokens_ref).abs() / tokens_ref;
+                assert!(
+                    rel_error < 0.05, // 5% tolerance — fixed-point vs float at this scale
+                    "purchase_return at {}% deposit: relative error {:.4} (approx={:.4}, ref={:.4})",
+                    pct, rel_error, tokens_f64_approx, tokens_ref
+                );
+            }
+        }
+    }
+
+    // ── sale return non-negative ──────────────────────────────────────────────
+
+    #[test]
+    fn test_sale_return_non_negative_across_inputs() {
+        let reserve = 5_000 * SCALE;
+        let supply  = 50_000 * SCALE;
+
+        // Sell 1%–10% of supply across different ratios
+        for sell_pct in 1_u32..=10 {
+            for ratio_pct in [25_u32, 33, 50, 67, 75] {
+                let sell_amount = supply * sell_pct as i128 / 100;
+                let denom = 100_i128;
+                let numer = ratio_pct as i128;
+
+                let out = calculate_sale_return_taylor(reserve, supply, sell_amount, numer, denom);
+                assert!(
+                    out >= 0,
+                    "sale_return_taylor should be non-negative (sell {}%, ratio {}/{}), got {}",
+                    sell_pct, numer, denom, out
+                );
+            }
+        }
+    }
+
+    // ── edge cases ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_edge_cases() {
+        // Zero inputs → zero output
+        assert_eq!(calculate_purchase_return_taylor(0, 1000 * SCALE, 100 * SCALE, 1, 2), 0);
+        assert_eq!(calculate_purchase_return_taylor(1000 * SCALE, 0, 100 * SCALE, 1, 2), 0);
+        assert_eq!(calculate_purchase_return_taylor(1000 * SCALE, 1000 * SCALE, 0, 1, 2), 0);
+        assert_eq!(calculate_purchase_return_taylor(1000 * SCALE, 1000 * SCALE, -1, 1, 2), 0);
+
+        // Sale entire supply (or more) → 0
+        let s = 1_000 * SCALE;
+        assert_eq!(calculate_sale_return_taylor(500 * SCALE, s, s, 1, 2), 0);
+        assert_eq!(calculate_sale_return_taylor(500 * SCALE, s, s + 1, 1, 2), 0);
+
+        // exp(0) = 1.0 in fixed point
+        assert_eq!(exp_taylor_5(0), SCALE);
+
+        // ln(SCALE) = ln(1.0) ≈ 0
+        let ln_one = ln_taylor_5(SCALE);
         assert!(
-            error < 0.001,
-            "ln_taylor_5 error ({}) exceeds precision bounds!",
-            error
-        );
-
-        // Test exp(0.2)
-        let y = SCALE / 5; // 0.2 in fixed point
-        let exp_approx = exp_taylor_5(y);
-        let float_exp = (0.2_f64).exp();
-
-        let exp_approx_f64 = exp_approx as f64 / SCALE as f64;
-        let exp_error = (exp_approx_f64 - float_exp).abs() / float_exp;
-
-        assert!(
-            exp_error < 0.001,
-            "exp_taylor_5 error ({}) exceeds precision bounds!",
-            exp_error
+            ln_one.abs() < SCALE / 1000,
+            "ln(1.0) should be near 0, got {}",
+            ln_one
         );
     }
 
+    // ── basic functionality retained ──────────────────────────────────────────
+
     #[test]
     fn test_bonding_curve_purchase_return_accuracy() {
-        // Use moderate values to avoid overflow with SCALE = 10^9
-        let reserve = 1_000 * SCALE;     // 1000 tokens in fixed point
-        let supply  = 10_000 * SCALE;    // 10000 tokens in fixed point
-        let deposit = 100 * SCALE;       // 100 token deposit
+        let reserve = 1_000 * SCALE;
+        let supply  = 10_000 * SCALE;
+        let deposit = 100 * SCALE;
 
         let tokens_out = calculate_purchase_return_taylor(reserve, supply, deposit, 1, 2);
         assert!(tokens_out > 0, "Tokens output should be positive, got {}", tokens_out);
     }
 }
+

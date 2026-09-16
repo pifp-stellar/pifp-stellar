@@ -21,6 +21,7 @@ pub(crate) mod offchain_api;
 mod oracle_api;
 mod rollup_api;
 pub(crate) mod mempool_dag_analyzer;
+pub(crate) mod mev_alert_api;
 pub(crate) mod p2p_gossip;
 pub(crate) mod state_proof;
 mod tss;
