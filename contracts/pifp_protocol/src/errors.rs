@@ -159,4 +159,12 @@ pub enum Error {
 
     /// Oracle threshold or count is invalid.
     InvalidOracleConfig = 36,
+    /// MMR proof verification failed (invalid root or path).
+    MmrProofInvalid = 37,
+    /// MMR is empty; no leaves have been appended yet.
+    MmrEmpty = 38,
+    /// Zero-knowledge proof verification failed (invalid proof or public inputs).
+    ZkProofInvalid = 39,
+    /// No verification key has been registered for ZK proofs.
+    ZkVkNotRegistered = 40,
 }

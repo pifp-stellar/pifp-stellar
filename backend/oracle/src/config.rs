@@ -51,6 +51,11 @@ pub struct Config {
     pub oracle_coingecko_url: String,
     pub oracle_binance_url: String,
     pub oracle_kraken_url: String,
+
+    pub sgx_enclave_path: Option<PathBuf>,
+    pub sgx_pccs_url: Option<String>,
+    pub sgx_enforce_production: bool,
+    pub sgx_quote_ttl_secs: u64,
 }
 
 impl Config {
@@ -128,6 +133,20 @@ impl Config {
             oracle_kraken_url: env_var("ORACLE_KRAKEN_URL").unwrap_or_else(|_| {
                 "https://api.kraken.com/0/public/Ticker?pair=XLMUSD".to_string()
             }),
+
+            sgx_enclave_path: env_var("SGX_ENCLAVE_PATH").ok().map(PathBuf::from),
+
+            sgx_pccs_url: env_var("SGX_PCCS_URL").ok(),
+
+            sgx_enforce_production: env_var("SGX_ENFORCE_PRODUCTION")
+                .unwrap_or_else(|_| "true".to_string())
+                .parse()
+                .unwrap_or(true),
+
+            sgx_quote_ttl_secs: env_var("SGX_QUOTE_TTL_SECS")
+                .unwrap_or_else(|_| "3600".to_string())
+                .parse()
+                .unwrap_or(3600),
         })
     }
 

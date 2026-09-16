@@ -60,10 +60,12 @@ pub mod categories;
 pub mod errors;
 pub mod events;
 pub mod invariants_checker;
+pub mod mmr;
 mod milestones;
 pub mod rbac;
 mod storage;
 mod types;
+pub mod zk_proof;
 
 #[cfg(test)]
 mod fuzz_test;
