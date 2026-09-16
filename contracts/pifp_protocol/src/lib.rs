@@ -34,6 +34,11 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
 
+pub mod taylor_bonding_curve;
+#[cfg(test)]
+pub mod k_formal_verification;
+
+
 use soroban_sdk::{
     contract, contractimpl, panic_with_error, token, Address, Bytes, BytesN, Env, Vec,
 };
