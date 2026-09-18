@@ -22,14 +22,17 @@ mod oracle_api;
 mod rollup_api;
 pub(crate) mod mempool_dag_analyzer;
 pub(crate) mod mev_alert_api;
-pub(crate) mod p2p_gossip;
-pub(crate) mod state_proof;
+mod p2p_gossip;
+mod state_proof;
 mod evm_transpiler;
 mod tss;
 mod tss_coordinator;
 mod tx_diagnostics;
 mod verifier;
 mod wasm_debug;
+mod sgx_enclave;
+mod sgx_attestation;
+mod sgx_storage;
 
 use std::sync::Arc;
 
@@ -130,6 +133,32 @@ async fn main() -> anyhow::Result<()> {
 
     let metrics = Arc::new(OracleMetrics::new());
     let diagnostics_store = Arc::new(TxDiagnosticsStore::new());
+
+    // Initialize SGX enclave if configured.
+    let sgx_handle = if let Some(ref enclave_path) = config.sgx_enclave_path {
+        match sgx_enclave::EnclaveHandle::new(sgx_enclave::EnclaveConfig {
+            enclave_path: enclave_path.clone(),
+            product_id: 1,
+            security_version: 1,
+            pccs_url: config.sgx_pccs_url.clone().unwrap_or_default(),
+            enforce_production: config.sgx_enforce_production,
+            max_sessions: 1024,
+        }) {
+            Ok(handle) => {
+                info!(
+                    mr_enclave = ?hex::encode(handle.mr_enclave()),
+                    "SGX enclave initialised"
+                );
+                Some(handle)
+            }
+            Err(e) => {
+                warn!("SGX enclave not available: {}. Running in unprotected mode.", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     // Initialize Bridge and IPFS states
     let bridge_state = Arc::new(BridgeState::new());

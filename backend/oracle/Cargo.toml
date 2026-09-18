@@ -52,6 +52,10 @@ rand = "0.10"
 threshold_crypto = "0.4"
 libp2p = { version = "0.56", features = ["tcp", "tls", "dns", "noise", "yamux", "kad", "gossipsub", "macros", "tokio"] }
 
+# SGX / Confidential Computing (Issue #6) — mocked when feature is disabled
+# Real SGX crates are not published to crates.io; replace with Intel SDK
+# or a vendor fork when targeting x86_64-fortanix-unknown-sgx.
+
 # Timestamps
 chrono = { version = "0.4", features = ["serde"] }
 
