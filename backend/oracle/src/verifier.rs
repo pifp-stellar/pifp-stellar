@@ -160,6 +160,10 @@ mod tests {
             oracle_coingecko_url: String::new(),
             oracle_binance_url: String::new(),
             oracle_kraken_url: String::new(),
+            sgx_enclave_path: None,
+            sgx_pccs_url: None,
+            sgx_enforce_production: false,
+            sgx_quote_ttl_secs: 3600,
         };
 
         // Use a CID that definitely doesn't exist

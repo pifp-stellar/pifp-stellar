@@ -43,6 +43,13 @@ fn dummy_proof(env: &Env) -> BytesN<32> {
     BytesN::from_array(env, &[0xabu8; 32])
 }
 
+fn dummy_metadata_uri(env: &Env) -> soroban_sdk::Bytes {
+    soroban_sdk::Bytes::from_slice(
+        env,
+        b"bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+    )
+}
+
 fn future_deadline(env: &Env) -> u64 {
     env.ledger().timestamp() + 86_400
 }
@@ -273,7 +280,7 @@ fn test_project_manager_can_register() {
         &vec![&env, token.clone()],
         &1_000_000i128,
         &dummy_proof(&env),
-        &soroban_sdk::Bytes::new(&env),
+        &dummy_metadata_uri(&env),
         &future_deadline(&env),
         &false,
         &milestones,
@@ -306,7 +313,7 @@ fn test_admin_can_register_project() {
         &vec![&env, token.clone()],
         &500_000i128,
         &dummy_proof(&env),
-        &soroban_sdk::Bytes::new(&env),
+        &dummy_metadata_uri(&env),
         &future_deadline(&env),
         &false,
         &milestones,
@@ -336,7 +343,7 @@ fn test_super_admin_can_register_project() {
         &vec![&env, token.clone()],
         &100i128,
         &dummy_proof(&env),
-        &soroban_sdk::Bytes::new(&env),
+        &dummy_metadata_uri(&env),
         &future_deadline(&env),
         &false,
         &milestones,
@@ -369,7 +376,7 @@ fn test_no_role_cannot_register_project() {
         &vec![&env, token.clone()],
         &1_000i128,
         &dummy_proof(&env),
-        &soroban_sdk::Bytes::new(&env),
+        &dummy_metadata_uri(&env),
         &future_deadline(&env),
         &false,
         &milestones,
@@ -401,7 +408,7 @@ fn test_auditor_cannot_register_project() {
         &vec![&env, token.clone()],
         &1_000i128,
         &dummy_proof(&env),
-        &soroban_sdk::Bytes::new(&env),
+        &dummy_metadata_uri(&env),
         &future_deadline(&env),
         &false,
         &milestones,
@@ -447,7 +454,7 @@ fn test_verify_and_release_by_oracle() {
         &vec![&env, token.clone()],
         &100i128,
         &proof,
-        &soroban_sdk::Bytes::new(&env),
+        &dummy_metadata_uri(&env),
         &future_deadline(&env),
         &false,
         &milestones,
@@ -458,6 +465,16 @@ fn test_verify_and_release_by_oracle() {
 
     // Should succeed — oracle has the Oracle role
     client.verify_proof(&oracle, &project.id, &proof);
+
+    let verified = client.get_project(&project.id);
+    assert_eq!(verified.status, crate::ProjectStatus::Verified);
+
+    // Advance time past 24h grace period and claim
+    let mut ledger = env.ledger().get();
+    ledger.timestamp += 86_400;
+    env.ledger().set(ledger);
+
+    client.claim_funds(&project.id);
 
     let completed = client.get_project(&project.id);
     assert_eq!(completed.status, crate::ProjectStatus::Completed);
@@ -488,7 +505,7 @@ fn test_non_oracle_cannot_verify() {
         &vec![&env, token.clone()],
         &100i128,
         &proof,
-        &soroban_sdk::Bytes::new(&env),
+        &dummy_metadata_uri(&env),
         &future_deadline(&env),
         &false,
         &milestones,
@@ -527,7 +544,7 @@ fn test_verify_wrong_proof_panics() {
         &vec![&env, token.clone()],
         &100i128,
         &proof,
-        &soroban_sdk::Bytes::new(&env),
+        &dummy_metadata_uri(&env),
         &future_deadline(&env),
         &false,
         &milestones,

@@ -3,7 +3,7 @@
 //! Append-only MMR maintained as a peak bag in instance storage.
 
 use soroban_sdk::{
-    contract, contractimpl, panic_with_error, Address, Bytes, BytesN, Env, Vec, contracttype,
+    contract, contractimpl, contracttype, panic_with_error, Address, Bytes, BytesN, Env, Vec,
 };
 
 use crate::errors::Error;
@@ -44,7 +44,11 @@ impl MmrContract {
 
         let mut peaks: Vec<BytesN<32>> = Vec::new(&env);
         for h in 0..MAX_PEAKS {
-            match env.storage().instance().get::<_, BytesN<32>>(&MmrKey::Peaks(h as u32)) {
+            match env
+                .storage()
+                .instance()
+                .get::<_, BytesN<32>>(&MmrKey::Peaks(h as u32))
+            {
                 Some(peak) => peaks.push_back(peak),
                 None => break,
             }

@@ -39,8 +39,8 @@ export class ZkProver {
 
     const wasmResponse = await fetch(this.config.wasmPath);
     const wasmBuffer = await wasmResponse.arrayBuffer();
-    const module = await WebAssembly.compile(wasmBuffer);
-    this.wasm = new WebAssembly.Instance(module);
+    const wasmModule = await WebAssembly.compile(wasmBuffer);
+    this.wasm = new WebAssembly.Instance(wasmModule);
   }
 
   async generateProof(inputs: ZkProofInputs): Promise<ZkProofResult> {

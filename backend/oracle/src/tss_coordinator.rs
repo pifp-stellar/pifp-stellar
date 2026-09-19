@@ -466,7 +466,7 @@ mod tests {
         // Node 0 sends a tampered decommitment.
         let tampered = Round2Decommitment {
             node_id: 0,
-            nonce_bytes: vec![0xff; 32],   // wrong
+            nonce_bytes: vec![0xff; 32],    // wrong
             blinding_bytes: vec![0x00; 32], // wrong
         };
         let abort = coordinator.receive_decommitment(tampered);
@@ -517,6 +517,9 @@ mod tests {
         let mut signer = TssNodeSigner::new(42);
         let c = signer.round1();
         let d = signer.round2().unwrap();
-        assert!(d.verify_against(&c), "decommitment must verify against commitment");
+        assert!(
+            d.verify_against(&c),
+            "decommitment must verify against commitment"
+        );
     }
 }

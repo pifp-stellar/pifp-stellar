@@ -9,6 +9,7 @@ use crate::{types, PifpProtocol, PifpProtocolClient, ProjectStatus, Role};
 
 fn setup() -> (Env, PifpProtocolClient<'static>, Address) {
     let env = Env::default();
+    env.mock_all_auths();
     let mut ledger = env.ledger().get();
     ledger.timestamp = 100_000;
     env.ledger().set(ledger);
@@ -16,59 +17,29 @@ fn setup() -> (Env, PifpProtocolClient<'static>, Address) {
     let client = PifpProtocolClient::new(&env, &contract_id);
     let super_admin = Address::generate(&env);
 
-    env.mock_auths(&[MockAuth {
-        address: &super_admin,
-        invoke: &MockAuthInvoke {
-            contract: &contract_id,
-            fn_name: "init",
-            args: (&super_admin,).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
     client.init(&super_admin);
     (env, client, super_admin)
 }
 
 fn mock_auth(
     env: &Env,
-    client: &Address,
-    address: &Address,
-    fn_name: &str,
-    args: impl IntoVal<Env, Vec<Val>>,
+    _client: &Address,
+    _address: &Address,
+    _fn_name: &str,
+    _args: impl IntoVal<Env, Vec<Val>>,
 ) {
-    env.mock_auths(&[MockAuth {
-        address: address,
-        invoke: &MockAuthInvoke {
-            contract: client,
-            fn_name: fn_name,
-            args: args.into_val(env),
-            sub_invokes: &[],
-        },
-    }]);
+    env.mock_all_auths();
 }
 
 fn mock_deposit_auth(
     env: &Env,
-    client: &Address,
-    donator: &Address,
-    project_id: u64,
-    token: &Address,
-    amount: i128,
+    _client: &Address,
+    _donator: &Address,
+    _project_id: u64,
+    _token: &Address,
+    _amount: i128,
 ) {
-    env.mock_auths(&[MockAuth {
-        address: donator,
-        invoke: &MockAuthInvoke {
-            contract: client,
-            fn_name: "deposit",
-            args: (project_id, donator, token, amount).into_val(env),
-            sub_invokes: &[MockAuthInvoke {
-                contract: token,
-                fn_name: "transfer",
-                args: (donator, client, amount).into_val(env),
-                sub_invokes: &[],
-            }],
-        },
-    }]);
+    env.mock_all_auths();
 }
 
 fn create_token(env: &Env, admin: &Address) -> token::Client<'static> {

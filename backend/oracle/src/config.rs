@@ -2,6 +2,8 @@
 //!
 //! Loads all required settings from environment variables.
 
+use std::path::PathBuf;
+
 use crate::errors::{OracleError, Result};
 
 #[derive(Debug, Clone)]
@@ -237,6 +239,10 @@ mod tests {
             oracle_binance_url: "https://api.binance.com/api/v3/ticker/price?symbol=XLMUSDT"
                 .to_string(),
             oracle_kraken_url: "https://api.kraken.com/0/public/Ticker?pair=XLMUSD".to_string(),
+            sgx_enclave_path: None,
+            sgx_pccs_url: None,
+            sgx_enforce_production: false,
+            sgx_quote_ttl_secs: 3600,
         }
     }
 }

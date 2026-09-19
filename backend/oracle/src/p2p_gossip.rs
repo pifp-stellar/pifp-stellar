@@ -13,7 +13,8 @@ use libp2p::{
     gossipsub::{self, MessageId, PublishError, SubscriptionError, TopicHash},
     identity::Keypair,
     kad::{self, store::MemoryStore},
-    noise, swarm::NetworkBehaviour,
+    noise,
+    swarm::NetworkBehaviour,
     tcp, yamux, Multiaddr, PeerId, SwarmBuilder,
 };
 use serde::{Deserialize, Serialize};
@@ -184,7 +185,10 @@ pub fn build_oracle_swarm(
         let _ = kademlia.bootstrap();
     }
 
-    let behaviour = OracleP2PBehaviour { gossipsub, kademlia };
+    let behaviour = OracleP2PBehaviour {
+        gossipsub,
+        kademlia,
+    };
 
     // Build the Swarm: TCP + Noise (XX pattern) + Yamux
     let swarm = SwarmBuilder::with_existing_identity(keypair.clone())
@@ -279,7 +283,8 @@ impl P2PGossipNode {
         nonce: u64,
         signature: Vec<u8>,
     ) -> Result<Vec<u8>, String> {
-        let obs = SignedPriceObservation::new(&self.node_id, asset_pair, price_stroops, nonce, signature);
+        let obs =
+            SignedPriceObservation::new(&self.node_id, asset_pair, price_stroops, nonce, signature);
 
         self.latest_observations
             .entry(asset_pair.to_string())
@@ -334,8 +339,12 @@ mod tests {
         node1.add_peer("oracle-node-2");
         node2.add_peer("oracle-node-1");
 
-        let payload1 = node1.broadcast_observation("XLM/USD", 1250000, 1, vec![1, 2, 3]).unwrap();
-        let payload2 = node2.broadcast_observation("XLM/USD", 1270000, 1, vec![4, 5, 6]).unwrap();
+        let payload1 = node1
+            .broadcast_observation("XLM/USD", 1250000, 1, vec![1, 2, 3])
+            .unwrap();
+        let payload2 = node2
+            .broadcast_observation("XLM/USD", 1270000, 1, vec![4, 5, 6])
+            .unwrap();
 
         let obs_received = node1.receive_message(&payload2).unwrap();
         assert_eq!(obs_received.price_stroops, 1270000);
@@ -365,7 +374,9 @@ mod tests {
         let mut node = P2PGossipNode::new("aggregator", GossipConfig::default());
 
         for (price, nonce) in [(1000, 1), (1200, 2), (1100, 3), (1050, 4), (1150, 5)] {
-            let payload = node.broadcast_observation("XLM/USD", price, nonce, vec![]).unwrap();
+            let payload = node
+                .broadcast_observation("XLM/USD", price, nonce, vec![])
+                .unwrap();
             let _ = node.receive_message(&payload);
         }
 
@@ -378,9 +389,12 @@ mod tests {
     #[test]
     fn test_gossip_node_alert_channel() {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let mut node = P2PGossipNode::new("oracle-channel-test", GossipConfig::default()).with_alert_channel(tx);
+        let mut node = P2PGossipNode::new("oracle-channel-test", GossipConfig::default())
+            .with_alert_channel(tx);
 
-        let payload = node.broadcast_observation("BTC/USD", 6000000000, 1, vec![0x01]).unwrap();
+        let payload = node
+            .broadcast_observation("BTC/USD", 6000000000, 1, vec![0x01])
+            .unwrap();
         let _ = node.receive_message(&payload);
 
         // Should have received 2 alerts: 1 from broadcast + 1 from receive_message

@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use crate::types::account_key;
 
 pub type Hash = [u8; 32];
-const DEPTH: usize = 32;
+const DEPTH: usize = 64;
 
 #[derive(Debug, Clone)]
 pub struct BalanceWitness {

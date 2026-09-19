@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::{mpsc, RwLock};
 use tracing::{debug, info, warn};
@@ -44,10 +44,7 @@ impl ParsedXdrTx {
     /// In production this would use the `stellar-xdr` crate to fully decode the envelope.
     /// Here we extract the deterministic fields available from the Horizon SSE payload.
     pub fn from_horizon_event(event: &HorizonTxEvent) -> Self {
-        let sequence = event
-            .source_account_sequence
-            .parse::<u64>()
-            .unwrap_or(0);
+        let sequence = event.source_account_sequence.parse::<u64>().unwrap_or(0);
 
         let fee_charged = event.fee_charged.parse::<u64>().unwrap_or(100);
 
@@ -84,8 +81,8 @@ impl ParsedXdrTx {
 /// for real-time MEV / front-running detection.
 pub struct MempoolStreamSubscriber {
     horizon_url: String,
-    analyzer:    Arc<RwLock<MempoolDagAnalyzer>>,
-    alert_tx:    mpsc::UnboundedSender<Vec<SandwichAlert>>,
+    analyzer: Arc<RwLock<MempoolDagAnalyzer>>,
+    alert_tx: mpsc::UnboundedSender<Vec<SandwichAlert>>,
 }
 
 impl MempoolStreamSubscriber {
@@ -153,7 +150,8 @@ impl MempoolStreamSubscriber {
                         if !alerts.is_empty() {
                             warn!(
                                 "🚨 {} sandwich alert(s) detected from streamed tx {}",
-                                alerts.len(), parsed.tx_hash
+                                alerts.len(),
+                                parsed.tx_hash
                             );
                             let _ = self.alert_tx.send(alerts);
                         }
@@ -172,7 +170,6 @@ impl MempoolStreamSubscriber {
         Ok(())
     }
 }
-
 
 /// Dependency classification between two pending transactions in the mempool.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -280,7 +277,7 @@ impl MempoolDagAnalyzer {
     /// Add a parsed pending transaction and reconstruct dependency edges.
     pub fn add_transaction(&mut self, node: MempoolTxNode) {
         let hash = node.tx_hash.clone();
-        
+
         // Find existing nodes that conflict or establish causal ordering
         for existing in self.nodes.values() {
             let mut dep_type = None;
@@ -301,7 +298,10 @@ impl MempoolDagAnalyzer {
                     to_tx: hash.clone(),
                     dep_type: t,
                 });
-                self.adjacency.entry(existing.tx_hash.clone()).or_default().push(hash.clone());
+                self.adjacency
+                    .entry(existing.tx_hash.clone())
+                    .or_default()
+                    .push(hash.clone());
                 *self.in_degree.entry(hash.clone()).or_insert(0) += 1;
             }
         }
@@ -392,10 +392,11 @@ impl MempoolDagAnalyzer {
                         let is_sandwich = back.sender == front.sender
                             || (back.fee_rate >= victim.fee_rate && back.direction == "Sell");
                         if is_sandwich {
-                            let estimated_profit =
-                                front.amount.min(back.amount) / 100 * ((front.fee_rate / 10).max(1) as u128);
-                            let price_impact =
-                                ((front.amount as f64 / (victim.amount as f64 + 1.0)) * 10000.0) as u32;
+                            let estimated_profit = front.amount.min(back.amount) / 100
+                                * ((front.fee_rate / 10).max(1) as u128);
+                            let price_impact = ((front.amount as f64
+                                / (victim.amount as f64 + 1.0))
+                                * 10000.0) as u32;
 
                             let alert = SandwichAlert {
                                 alert_id: format!(
@@ -445,7 +446,9 @@ mod tests {
         analyzer.add_transaction(tx2);
         analyzer.add_transaction(tx3);
 
-        let order = analyzer.topological_sort().expect("Should form a valid DAG");
+        let order = analyzer
+            .topological_sort()
+            .expect("Should form a valid DAG");
         assert_eq!(order.len(), 3);
     }
 
@@ -454,11 +457,24 @@ mod tests {
         let mut analyzer = MempoolDagAnalyzer::new();
 
         // Front-runner: attacker buys with high fee (gets executed first)
-        let front = MempoolTxNode::new("tx-front", "attacker", 1, "XLM/USDC", "Swap", "Buy", 10000, 500);
+        let front = MempoolTxNode::new(
+            "tx-front", "attacker", 1, "XLM/USDC", "Swap", "Buy", 10000, 500,
+        );
         // Victim: normal user buys at lower fee (gets sandwiched)
-        let victim = MempoolTxNode::new("tx-victim", "victim_user", 10, "XLM/USDC", "Swap", "Buy", 50000, 50);
+        let victim = MempoolTxNode::new(
+            "tx-victim",
+            "victim_user",
+            10,
+            "XLM/USDC",
+            "Swap",
+            "Buy",
+            50000,
+            50,
+        );
         // Back-runner: same attacker sells after victim (completes the sandwich)
-        let back = MempoolTxNode::new("tx-back", "attacker", 2, "XLM/USDC", "Swap", "Sell", 10000, 100);
+        let back = MempoolTxNode::new(
+            "tx-back", "attacker", 2, "XLM/USDC", "Swap", "Sell", 10000, 100,
+        );
 
         analyzer.add_transaction(front);
         analyzer.add_transaction(victim);
@@ -469,9 +485,15 @@ mod tests {
 
         // Verify the alert identifies the correct participants (order-independent due to HashMap)
         let alert = &alerts[0];
-        assert_eq!(alert.frontrunner_tx, "tx-front", "Front-runner should be tx-front");
+        assert_eq!(
+            alert.frontrunner_tx, "tx-front",
+            "Front-runner should be tx-front"
+        );
         assert_eq!(alert.victim_tx, "tx-victim", "Victim should be tx-victim");
-        assert_eq!(alert.backrunner_tx, "tx-back", "Back-runner should be tx-back");
+        assert_eq!(
+            alert.backrunner_tx, "tx-back",
+            "Back-runner should be tx-back"
+        );
         assert_eq!(alert.attacker_address, "attacker");
         assert_eq!(alert.victim_address, "victim_user");
         assert_eq!(alert.target_resource, "XLM/USDC");

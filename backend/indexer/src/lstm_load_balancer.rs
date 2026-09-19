@@ -332,7 +332,11 @@ mod tests {
     fn ewma_cold_start() {
         let mut cell = LstmCell::new(0.25);
         cell.update(100.0);
-        assert_eq!(cell.predict(), 100.0, "cold start should equal first sample");
+        assert_eq!(
+            cell.predict(),
+            100.0,
+            "cold start should equal first sample"
+        );
     }
 
     #[test]
@@ -408,6 +412,9 @@ mod tests {
         for i in 0..WINDOW {
             cell.update(if i % 2 == 0 { 10.0 } else { 200.0 });
         }
-        assert!(cell.variance() > 1000.0, "variance should be high under jitter");
+        assert!(
+            cell.variance() > 1000.0,
+            "variance should be high under jitter"
+        );
     }
 }

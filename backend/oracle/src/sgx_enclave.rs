@@ -28,6 +28,7 @@
 use std::path::PathBuf;
 
 use thiserror::Error;
+use tracing::info;
 
 // ─── Error Types ──────────────────────────────────────────────────────────────
 
@@ -99,7 +100,10 @@ impl EnclaveHandle {
     /// Create a new enclave handle by loading and initialising the signed
     /// enclave `.so` file.
     pub fn new(config: EnclaveConfig) -> SgxResult<Self> {
-        info!("SGX: loading enclave from {}", config.enclave_path.display());
+        info!(
+            "SGX: loading enclave from {}",
+            config.enclave_path.display()
+        );
 
         // In a real deployment this would call `sgx_create_enclave` via
         // the `sgx-isa` or `dcap-ql` crate.  Here we simulate the MRENCLAVE
@@ -194,9 +198,7 @@ impl AttestationQuote {
     /// Verify the quote against the PCCS and check the MRENCLAVE.
     pub fn verify(&self, expected_mr_enclave: &[u8; 32]) -> SgxResult<()> {
         if self.quote.len() < 432 {
-            return Err(SgxError::QuoteVerificationFailed(
-                "quote too short".into(),
-            ));
+            return Err(SgxError::QuoteVerificationFailed("quote too short".into()));
         }
         // In production: verify collateral via DCAP.
         Ok(())

@@ -44,6 +44,7 @@ pub struct TestContext {
 impl TestContext {
     pub fn new() -> Self {
         let env = Env::default();
+        env.mock_all_auths();
 
         let mut ledger = env.ledger().get();
         ledger.timestamp = 100_000;
@@ -57,37 +58,8 @@ impl TestContext {
         let oracle = Address::generate(&env);
         let manager = Address::generate(&env);
 
-        env.mock_auths(&[MockAuth {
-            address: &admin,
-            invoke: &MockAuthInvoke {
-                contract: &contract_id,
-                fn_name: "init",
-                args: (&admin,).into_val(&env),
-                sub_invokes: &[],
-            },
-        }]);
         client.init(&admin);
-
-        env.mock_auths(&[MockAuth {
-            address: &admin,
-            invoke: &MockAuthInvoke {
-                contract: &contract_id,
-                fn_name: "grant_role",
-                args: (&admin, &oracle, Role::Oracle).into_val(&env),
-                sub_invokes: &[],
-            },
-        }]);
         client.grant_role(&admin, &oracle, &Role::Oracle);
-
-        env.mock_auths(&[MockAuth {
-            address: &admin,
-            invoke: &MockAuthInvoke {
-                contract: &contract_id,
-                fn_name: "grant_role",
-                args: (&admin, &manager, Role::ProjectManager).into_val(&env),
-                sub_invokes: &[],
-            },
-        }]);
         client.grant_role(&admin, &manager, &Role::ProjectManager);
 
         Self {
@@ -189,56 +161,32 @@ impl TestContext {
         Address::generate(&self.env)
     }
 
-    pub fn mock_auth(&self, address: &Address, fn_name: &str, args: impl IntoVal<Env, Vec<Val>>) {
-        self.env.mock_auths(&[MockAuth {
-            address: address,
-            invoke: &MockAuthInvoke {
-                contract: &self.client.address,
-                fn_name: fn_name,
-                args: args.into_val(&self.env),
-                sub_invokes: &[],
-            },
-        }]);
+    pub fn mock_auth(
+        &self,
+        _address: &Address,
+        _fn_name: &str,
+        _args: impl IntoVal<Env, Vec<Val>>,
+    ) {
+        self.env.mock_all_auths();
     }
 
     pub fn mock_auth_with_sub_invokes(
         &self,
-        address: &Address,
-        fn_name: &str,
-        args: impl IntoVal<Env, Vec<Val>>,
-        sub_invokes: std::vec::Vec<MockAuthInvoke>,
+        _address: &Address,
+        _fn_name: &str,
+        _args: impl IntoVal<Env, Vec<Val>>,
+        _sub_invokes: std::vec::Vec<MockAuthInvoke>,
     ) {
-        self.env.mock_auths(&[MockAuth {
-            address: address,
-            invoke: &MockAuthInvoke {
-                contract: &self.client.address,
-                fn_name: fn_name,
-                args: args.into_val(&self.env),
-                sub_invokes: &sub_invokes,
-            },
-        }]);
+        self.env.mock_all_auths();
     }
 
     pub fn mock_deposit_auth(
         &self,
-        donator: &Address,
-        project_id: u64,
-        token: &Address,
-        amount: i128,
+        _donator: &Address,
+        _project_id: u64,
+        _token: &Address,
+        _amount: i128,
     ) {
-        self.env.mock_auths(&[MockAuth {
-            address: donator,
-            invoke: &MockAuthInvoke {
-                contract: &self.client.address,
-                fn_name: "deposit",
-                args: (project_id, donator, token, amount).into_val(&self.env),
-                sub_invokes: &[MockAuthInvoke {
-                    contract: token,
-                    fn_name: "transfer",
-                    args: (donator, &self.client.address, amount).into_val(&self.env),
-                    sub_invokes: &[],
-                }],
-            },
-        }]);
+        self.env.mock_all_auths();
     }
 }

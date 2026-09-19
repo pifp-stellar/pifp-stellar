@@ -268,11 +268,7 @@ pub fn require_can_register(env: &Env, address: &Address) {
 /// Assert that `address` may cancel a project.
 #[inline]
 pub fn require_can_cancel_project(env: &Env, address: &Address) {
-    require_any_of(
-        env,
-        address,
-        &[Role::SuperAdmin, Role::Admin, Role::ProjectManager],
-    );
+    require_any_of(env, address, &[Role::SuperAdmin, Role::ProjectManager]);
 }
 
 // ─────────────────────────────────────────────────────────

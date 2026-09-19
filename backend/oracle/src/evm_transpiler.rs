@@ -354,7 +354,10 @@ impl OpcodeMapper {
                 mem.emit_sstore(out);
             }
             EvmOpcode::Jump => {
-                let _ = writeln!(out, "  ;; JUMP (unconditional) — dynamic dispatch via br_table");
+                let _ = writeln!(
+                    out,
+                    "  ;; JUMP (unconditional) — dynamic dispatch via br_table"
+                );
                 let _ = writeln!(out, "  i32.wrap_i64");
                 let _ = writeln!(out, "  br_table $dispatch_table $default_dest");
             }
@@ -368,7 +371,10 @@ impl OpcodeMapper {
             }
             EvmOpcode::JumpDest => {} // handled via Instruction::JumpDest
             EvmOpcode::Return => {
-                let _ = writeln!(out, "  ;; RETURN: pass buffer back through return_val host fn");
+                let _ = writeln!(
+                    out,
+                    "  ;; RETURN: pass buffer back through return_val host fn"
+                );
                 let _ = writeln!(out, "  call $env_return_value");
                 let _ = writeln!(out, "  return");
             }
@@ -417,7 +423,7 @@ impl OpcodeMapper {
                 // These are decoded as Instruction::Push — should never reach here.
                 let _ = writeln!(out, "  ;; PUSH (decoded separately)");
             }
-            EvmOpcode::Dup1 => {} // decoded as Instruction::Dup
+            EvmOpcode::Dup1 => {}  // decoded as Instruction::Dup
             EvmOpcode::Swap1 => {} // decoded as Instruction::Swap
         }
     }
@@ -735,7 +741,10 @@ mod tests {
         // big-endian buffer, so the result is 255 (not -1).
         assert_eq!(bytes_to_i64(&[0xff]), 255);
         // Full 8-byte all-ones → -1 in two's complement i64.
-        assert_eq!(bytes_to_i64(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]), -1);
+        assert_eq!(
+            bytes_to_i64(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
+            -1
+        );
     }
 
     #[test]

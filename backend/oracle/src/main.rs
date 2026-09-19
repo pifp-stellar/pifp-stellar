@@ -9,30 +9,30 @@ pub(crate) mod debt_graph;
 mod did;
 mod dkg;
 mod errors;
+mod evm_transpiler;
 mod health;
 mod ipfs;
 mod ipfs_api;
 mod mempool;
+pub(crate) mod mempool_dag_analyzer;
 mod metrics;
+pub(crate) mod mev_alert_api;
 mod mpc;
 mod notifications;
 mod observer;
 pub(crate) mod offchain_api;
 mod oracle_api;
-mod rollup_api;
-pub(crate) mod mempool_dag_analyzer;
-pub(crate) mod mev_alert_api;
 mod p2p_gossip;
+mod rollup_api;
+mod sgx_attestation;
+mod sgx_enclave;
+mod sgx_storage;
 mod state_proof;
-mod evm_transpiler;
 mod tss;
 mod tss_coordinator;
 mod tx_diagnostics;
 mod verifier;
 mod wasm_debug;
-mod sgx_enclave;
-mod sgx_attestation;
-mod sgx_storage;
 
 use std::sync::Arc;
 
@@ -152,7 +152,10 @@ async fn main() -> anyhow::Result<()> {
                 Some(handle)
             }
             Err(e) => {
-                warn!("SGX enclave not available: {}. Running in unprotected mode.", e);
+                warn!(
+                    "SGX enclave not available: {}. Running in unprotected mode.",
+                    e
+                );
                 None
             }
         }

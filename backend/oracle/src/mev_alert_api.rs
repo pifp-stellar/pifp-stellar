@@ -3,13 +3,13 @@
 //! Provides a real-time Server-Sent Events (SSE) endpoint that pushes
 //! `SandwichAlert` notifications from the mempool DAG analyzer to connected frontend clients.
 
+use axum::response::sse::{Event, KeepAlive};
 use axum::{
     extract::State,
     response::{IntoResponse, Response, Sse},
     routing::get,
     Json, Router,
 };
-use axum::response::sse::{Event, KeepAlive};
 use futures::stream::{self, Stream};
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -51,7 +51,10 @@ pub fn mev_alert_router(state: MevAlertState) -> Router {
     Router::new()
         .route("/api/mev/alerts/stream", get(sse_alert_stream))
         .route("/api/mev/alerts/latest", get(latest_alerts))
-        .route("/api/mev/mempool/ingest", axum::routing::post(ingest_transaction))
+        .route(
+            "/api/mev/mempool/ingest",
+            axum::routing::post(ingest_transaction),
+        )
         .with_state(state)
 }
 
@@ -93,9 +96,7 @@ async fn sse_alert_stream(
 /// REST snapshot: `GET /api/mev/alerts/latest`
 ///
 /// Returns the current set of detected sandwich alerts from the live analyzer.
-async fn latest_alerts(
-    State(state): State<MevAlertState>,
-) -> Json<Vec<SandwichAlert>> {
+async fn latest_alerts(State(state): State<MevAlertState>) -> Json<Vec<SandwichAlert>> {
     let analyzer = state.analyzer.read().await;
     Json(analyzer.detect_sandwich_attacks())
 }
@@ -134,7 +135,12 @@ mod tests {
         let app = mev_alert_router(state);
 
         let response = app
-            .oneshot(Request::builder().uri("/api/mev/alerts/latest").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/mev/alerts/latest")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -174,9 +180,22 @@ mod tests {
 
         // Simulate sandwich ingest
         let txs = vec![
-            MempoolTxNode::new("front", "attacker", 1, "XLM/USDC", "Swap", "Buy", 10000, 500),
-            MempoolTxNode::new("victim", "victim_user", 10, "XLM/USDC", "Swap", "Buy", 50000, 50),
-            MempoolTxNode::new("back", "attacker", 2, "XLM/USDC", "Swap", "Sell", 10000, 100),
+            MempoolTxNode::new(
+                "front", "attacker", 1, "XLM/USDC", "Swap", "Buy", 10000, 500,
+            ),
+            MempoolTxNode::new(
+                "victim",
+                "victim_user",
+                10,
+                "XLM/USDC",
+                "Swap",
+                "Buy",
+                50000,
+                50,
+            ),
+            MempoolTxNode::new(
+                "back", "attacker", 2, "XLM/USDC", "Swap", "Sell", 10000, 100,
+            ),
         ];
 
         {
@@ -192,7 +211,10 @@ mod tests {
 
         // Should be able to receive the broadcast alert
         let result = rx.try_recv();
-        assert!(result.is_ok(), "Sandwich alert should be broadcast to subscribers");
+        assert!(
+            result.is_ok(),
+            "Sandwich alert should be broadcast to subscribers"
+        );
         assert_eq!(result.unwrap().frontrunner_tx, "front");
     }
 }

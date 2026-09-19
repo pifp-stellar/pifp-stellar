@@ -75,63 +75,14 @@ fn test_verify_and_release_with_fees() {
     let accepted_tokens = Vec::from_array(&env, [token.address.clone()]);
 
     // Setup roles
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &client.address,
-            fn_name: "grant_role",
-            args: (&admin, &creator, Role::ProjectManager).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
     client.grant_role(&admin, &creator, &Role::ProjectManager);
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &client.address,
-            fn_name: "grant_role",
-            args: (&admin, &oracle, Role::Oracle).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
     client.grant_role(&admin, &oracle, &Role::Oracle);
 
     // Set 5% fee
-    env.mock_auths(&[MockAuth {
-        address: &admin,
-        invoke: &MockAuthInvoke {
-            contract: &client.address,
-            fn_name: "update_protocol_config",
-            args: (&admin, &fee_recipient, 500u32).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
     client.update_protocol_config(&admin, &fee_recipient, &500);
 
     let milestones = Vec::new(&env);
     let proof_hash = dummy_proof(&env);
-    env.mock_auths(&[MockAuth {
-        address: &creator,
-        invoke: &MockAuthInvoke {
-            contract: &client.address,
-            fn_name: "register_project",
-            args: (
-                &creator,
-                &accepted_tokens,
-                1000i128,
-                &proof_hash,
-                dummy_metadata_uri(&env),
-                env.ledger().timestamp() + 10000,
-                false,
-                &milestones,
-                0u32,
-                Vec::<Address>::new(&env),
-                0u32,
-            )
-                .into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
     let project = client.register_project(
         &creator,
         &accepted_tokens,
@@ -148,32 +99,9 @@ fn test_verify_and_release_with_fees() {
 
     // Deposit 1000 tokens
     token_sac.mint(&donor, &1000);
-    env.mock_auths(&[MockAuth {
-        address: &donor,
-        invoke: &MockAuthInvoke {
-            contract: &client.address,
-            fn_name: "deposit",
-            args: (project.id, &donor, &token.address, 1000i128).into_val(&env),
-            sub_invokes: &[MockAuthInvoke {
-                contract: &token.address,
-                fn_name: "transfer",
-                args: (&donor, &client.address, 1000i128).into_val(&env),
-                sub_invokes: &[],
-            }],
-        },
-    }]);
     client.deposit(&project.id, &donor, &token.address, &1000);
 
     // Verify proof and wait grace period
-    env.mock_auths(&[MockAuth {
-        address: &oracle,
-        invoke: &MockAuthInvoke {
-            contract: &client.address,
-            fn_name: "verify_proof",
-            args: (&oracle, project.id, &proof_hash).into_val(&env),
-            sub_invokes: &[],
-        },
-    }]);
     client.verify_proof(&oracle, &project.id, &proof_hash);
 
     // Advance time past 24h grace period

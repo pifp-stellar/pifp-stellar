@@ -605,6 +605,10 @@ mod tests {
             foreign_rpc_url: None,
             foreign_bridge_address: None,
             node_id: 1,
+            sgx_enclave_path: None,
+            sgx_pccs_url: None,
+            sgx_enforce_production: false,
+            sgx_quote_ttl_secs: 3600,
         }
     }
 

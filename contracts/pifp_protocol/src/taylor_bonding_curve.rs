@@ -71,9 +71,9 @@ pub fn ln_taylor_5(x: i128) -> i128 {
 
     let y2 = mul_fp(y, y);
     let y3 = mul_fp(y2, y);
-    let y5 = mul_fp(mul_fp(y3, y2), y2);
-    let y7 = mul_fp(mul_fp(y5, y2), y2);
-    let y9 = mul_fp(mul_fp(y7, y2), y2);
+    let y5 = mul_fp(y3, y2);
+    let y7 = mul_fp(y5, y2);
+    let y9 = mul_fp(y7, y2);
 
     let sum = y + y3 / 3 + y5 / 5 + y7 / 7 + y9 / 9;
     2 * sum
@@ -165,16 +165,27 @@ mod tests {
             assert!(
                 rel_error < MAX_RELATIVE_ERROR,
                 "exp_taylor_5({:.4}) error {:.6} exceeds {}% bound (approx={:.8}, ref={:.8})",
-                x_f64, rel_error, MAX_RELATIVE_ERROR * 100.0, approx_f64, reference
+                x_f64,
+                rel_error,
+                MAX_RELATIVE_ERROR * 100.0,
+                approx_f64,
+                reference
             );
         }
 
         // Verify error at x=0 (should be exactly 0)
         let exp_zero = exp_taylor_5(0);
-        assert_eq!(exp_zero, SCALE, "exp(0) in fixed point must equal SCALE (1.0)");
+        assert_eq!(
+            exp_zero, SCALE,
+            "exp(0) in fixed point must equal SCALE (1.0)"
+        );
 
         extern crate std;
-        std::eprintln!("exp_taylor_5 worst-case error: {:.8} at x={:.4}", max_error, worst_x);
+        std::eprintln!(
+            "exp_taylor_5 worst-case error: {:.8} at x={:.4}",
+            max_error,
+            worst_x
+        );
     }
 
     // ── ln(x) precision fuzz ──────────────────────────────────────────────────
@@ -215,7 +226,11 @@ mod tests {
             assert!(
                 rel_error < MAX_RELATIVE_ERROR,
                 "{}: relative error {:.6} exceeds {}% bound (approx={:.8}, ref={:.8})",
-                label, rel_error, MAX_RELATIVE_ERROR * 100.0, approx_f64, reference
+                label,
+                rel_error,
+                MAX_RELATIVE_ERROR * 100.0,
+                approx_f64,
+                reference
             );
         }
 
@@ -230,11 +245,11 @@ mod tests {
         // Compare Taylor purchase return to floating-point Bancor formula
         // across 20 different deposit sizes (1% to 20% of reserve)
         let reserve = 10_000 * SCALE;
-        let supply  = 100_000 * SCALE;
+        let supply = 100_000 * SCALE;
 
         for pct in 1_u32..=20 {
             let deposit_f64 = 10_000.0 * (pct as f64) / 100.0;
-            let deposit_fp  = (deposit_f64 * SCALE as f64) as i128;
+            let deposit_fp = (deposit_f64 * SCALE as f64) as i128;
 
             // Fixed-point Taylor approximation
             let tokens_fp = calculate_purchase_return_taylor(reserve, supply, deposit_fp, 1, 2);
@@ -270,7 +285,7 @@ mod tests {
     #[test]
     fn test_sale_return_non_negative_across_inputs() {
         let reserve = 5_000 * SCALE;
-        let supply  = 50_000 * SCALE;
+        let supply = 50_000 * SCALE;
 
         // Sell 1%–10% of supply across different ratios
         for sell_pct in 1_u32..=10 {
@@ -283,7 +298,10 @@ mod tests {
                 assert!(
                     out >= 0,
                     "sale_return_taylor should be non-negative (sell {}%, ratio {}/{}), got {}",
-                    sell_pct, numer, denom, out
+                    sell_pct,
+                    numer,
+                    denom,
+                    out
                 );
             }
         }
@@ -294,10 +312,22 @@ mod tests {
     #[test]
     fn test_edge_cases() {
         // Zero inputs → zero output
-        assert_eq!(calculate_purchase_return_taylor(0, 1000 * SCALE, 100 * SCALE, 1, 2), 0);
-        assert_eq!(calculate_purchase_return_taylor(1000 * SCALE, 0, 100 * SCALE, 1, 2), 0);
-        assert_eq!(calculate_purchase_return_taylor(1000 * SCALE, 1000 * SCALE, 0, 1, 2), 0);
-        assert_eq!(calculate_purchase_return_taylor(1000 * SCALE, 1000 * SCALE, -1, 1, 2), 0);
+        assert_eq!(
+            calculate_purchase_return_taylor(0, 1000 * SCALE, 100 * SCALE, 1, 2),
+            0
+        );
+        assert_eq!(
+            calculate_purchase_return_taylor(1000 * SCALE, 0, 100 * SCALE, 1, 2),
+            0
+        );
+        assert_eq!(
+            calculate_purchase_return_taylor(1000 * SCALE, 1000 * SCALE, 0, 1, 2),
+            0
+        );
+        assert_eq!(
+            calculate_purchase_return_taylor(1000 * SCALE, 1000 * SCALE, -1, 1, 2),
+            0
+        );
 
         // Sale entire supply (or more) → 0
         let s = 1_000 * SCALE;
@@ -321,11 +351,14 @@ mod tests {
     #[test]
     fn test_bonding_curve_purchase_return_accuracy() {
         let reserve = 1_000 * SCALE;
-        let supply  = 10_000 * SCALE;
+        let supply = 10_000 * SCALE;
         let deposit = 100 * SCALE;
 
         let tokens_out = calculate_purchase_return_taylor(reserve, supply, deposit, 1, 2);
-        assert!(tokens_out > 0, "Tokens output should be positive, got {}", tokens_out);
+        assert!(
+            tokens_out > 0,
+            "Tokens output should be positive, got {}",
+            tokens_out
+        );
     }
 }
-

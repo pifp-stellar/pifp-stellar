@@ -34,10 +34,9 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
 
-pub mod taylor_bonding_curve;
 #[cfg(test)]
 pub mod k_formal_verification;
-
+pub mod taylor_bonding_curve;
 
 use soroban_sdk::{
     contract, contractimpl, panic_with_error, token, Address, Bytes, BytesN, Env, Vec,
@@ -60,8 +59,8 @@ pub mod categories;
 pub mod errors;
 pub mod events;
 pub mod invariants_checker;
-pub mod mmr;
 mod milestones;
+pub mod mmr;
 pub mod rbac;
 mod storage;
 mod types;
@@ -268,8 +267,6 @@ impl PifpProtocol {
     }
 
     pub fn set_oracle(env: Env, caller: Address, oracle: Address) {
-        caller.require_auth();
-        rbac::require_admin_or_above(&env, &caller);
         rbac::grant_role(&env, &caller, &oracle, Role::Oracle);
     }
 
@@ -363,13 +360,9 @@ impl PifpProtocol {
         authorized_oracles: Vec<Address>,
         threshold: u32,
     ) -> Project {
-        if milestones.is_empty() {
-            panic_with_error!(&env, Error::InvalidGoal);
+        if !milestones.is_empty() {
+            milestones::validate_milestone_set(&env, &milestones);
         }
-        if milestones.is_empty() {
-            panic_with_error!(&env, Error::InvalidMilestones);
-        }
-        milestones::validate_milestone_set(&env, &milestones);
 
         if accepted_tokens.is_empty() {
             panic_with_error!(&env, Error::EmptyAcceptedTokens);
@@ -448,6 +441,7 @@ impl PifpProtocol {
         project_id: u64,
         submitted_proof_hash: BytesN<32>,
     ) {
+        Self::require_not_paused(&env);
         oracle.require_auth();
         // RBAC gate: caller must hold the Oracle role.
         rbac::require_oracle(&env, &oracle);

@@ -32,7 +32,12 @@ pub struct SealedRecord {
 }
 
 impl SealedRecord {
-    pub fn new(ciphertext: Vec<u8>, tag: Vec<u8>, nonce: Vec<u8>, key_id: impl Into<String>) -> Self {
+    pub fn new(
+        ciphertext: Vec<u8>,
+        tag: Vec<u8>,
+        nonce: Vec<u8>,
+        key_id: impl Into<String>,
+    ) -> Self {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -113,7 +118,11 @@ impl SealedStorage {
         file.write_all(&payload)?;
         file.flush().map_err(SgxError::Io)?;
 
-        info!("SealedStorage: sealed {} bytes for key={}", plaintext.len(), key_id);
+        info!(
+            "SealedStorage: sealed {} bytes for key={}",
+            plaintext.len(),
+            key_id
+        );
         Ok(())
     }
 

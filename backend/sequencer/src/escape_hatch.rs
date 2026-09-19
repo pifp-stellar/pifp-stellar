@@ -164,10 +164,7 @@ impl EscapeHatchManager {
     /// * The anchor batch is not in the committed checkpoint store.
     /// * The Merkle proof is invalid against the committed state root.
     /// * A duplicate escape request already exists.
-    pub fn submit_escape(
-        &mut self,
-        req: EscapeRequest,
-    ) -> Result<String, EscapeError> {
+    pub fn submit_escape(&mut self, req: EscapeRequest) -> Result<String, EscapeError> {
         if self.escapes.contains_key(&req.id) {
             return Err(EscapeError::Duplicate(req.id.clone()));
         }
@@ -255,16 +252,10 @@ impl EscapeHatchManager {
                 );
                 Ok(balance)
             }
-            EscapeStatus::Pending => {
-                Err(EscapeError::WindowStillOpen(escape_id.to_string()))
-            }
-            EscapeStatus::Challenged => {
-                Err(EscapeError::Challenged(escape_id.to_string()))
-            }
+            EscapeStatus::Pending => Err(EscapeError::WindowStillOpen(escape_id.to_string())),
+            EscapeStatus::Challenged => Err(EscapeError::Challenged(escape_id.to_string())),
             EscapeStatus::Finalised => Ok(entry.request.claimed_balance),
-            EscapeStatus::Rejected(ref reason) => {
-                Err(EscapeError::Rejected(reason.clone()))
-            }
+            EscapeStatus::Rejected(ref reason) => Err(EscapeError::Rejected(reason.clone())),
         }
     }
 
@@ -291,8 +282,8 @@ impl EscapeHatchManager {
         let mut current: [u8; 32] = h.finalize().into();
 
         for sibling_hex in &req.merkle_proof_siblings {
-            let sibling = hex::decode(sibling_hex)
-                .map_err(|e| EscapeError::InvalidProof(e.to_string()))?;
+            let sibling =
+                hex::decode(sibling_hex).map_err(|e| EscapeError::InvalidProof(e.to_string()))?;
             if sibling.len() != 32 {
                 return Err(EscapeError::InvalidProof(
                     "sibling hash must be 32 bytes".to_string(),

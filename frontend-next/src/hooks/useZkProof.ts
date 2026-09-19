@@ -42,7 +42,9 @@ export function useZkProof<T = unknown>(
       worker = new Worker(workerPath, { type: 'module' });
     } catch (e) {
       console.error('[zk] failed to create worker:', e);
-      setState(s => ({ ...s, error: 'Failed to create ZK proof worker' }));
+      queueMicrotask(() => {
+        setState(s => ({ ...s, error: 'Failed to create ZK proof worker' }));
+      });
       return;
     }
 

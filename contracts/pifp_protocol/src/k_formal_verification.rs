@@ -56,10 +56,7 @@ impl SymbolicEscrowVaultState {
         }
 
         self.reentrancy_guard = true;
-        self.total_deposited = self
-            .total_deposited
-            .checked_add(amount)
-            .ok_or("Overflow")?;
+        self.total_deposited = self.total_deposited.checked_add(amount).ok_or("Overflow")?;
         self.reentrancy_guard = false;
 
         self.assert_solvency_invariant();
@@ -79,10 +76,7 @@ impl SymbolicEscrowVaultState {
         }
 
         self.reentrancy_guard = true;
-        self.total_locked = self
-            .total_locked
-            .checked_add(amount)
-            .ok_or("Overflow")?;
+        self.total_locked = self.total_locked.checked_add(amount).ok_or("Overflow")?;
         self.reentrancy_guard = false;
 
         self.assert_solvency_invariant();
@@ -103,10 +97,7 @@ impl SymbolicEscrowVaultState {
 
         self.reentrancy_guard = true;
         self.total_locked -= amount;
-        self.total_claimed = self
-            .total_claimed
-            .checked_add(amount)
-            .ok_or("Overflow")?;
+        self.total_claimed = self.total_claimed.checked_add(amount).ok_or("Overflow")?;
         self.reentrancy_guard = false;
 
         self.assert_solvency_invariant();
@@ -163,5 +154,8 @@ fn test_k_framework_symbolic_invariants() {
     assert_eq!(vault.total_claimed, 400);
 
     let paths_checked = run_symbolic_execution_k_verifier(4);
-    assert!(paths_checked > 0, "Symbolic execution verifier checked paths");
+    assert!(
+        paths_checked > 0,
+        "Symbolic execution verifier checked paths"
+    );
 }

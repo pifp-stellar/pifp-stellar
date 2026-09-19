@@ -3,21 +3,19 @@
 //! Provides on-chain verification of Groth16 proofs so donors can attest
 //! to their contribution tier without revealing their wallet address.
 
-use soroban_sdk::{
-    contract, contractimpl, panic_with_error, Address, BytesN, Env, Vec,
-};
+use soroban_sdk::{contract, contractimpl, panic_with_error, Address, BytesN, Env, Vec};
 
 use crate::errors::Error;
 
 const MAX_PUBLIC_INPUTS: u32 = 8;
 
 const ZK_VK_HASH: [u8; 32] = [
-    90, 75, 95, 86, 75, 95, 72, 65, 83, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0,
+    90, 75, 95, 86, 75, 95, 72, 65, 83, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
 ];
 const ZK_VK_REG: [u8; 32] = [
-    90, 75, 95, 86, 75, 95, 82, 69, 71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0,
+    90, 75, 95, 86, 75, 95, 82, 69, 71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0,
 ];
 
 #[contract]
@@ -27,7 +25,9 @@ pub struct ZkProofContract;
 impl ZkProofContract {
     pub fn register_vk(env: Env, caller: Address, vk_hash: BytesN<32>) {
         caller.require_auth();
-        env.storage().instance().set(&BytesN::from_array(&env, &ZK_VK_HASH), &vk_hash);
+        env.storage()
+            .instance()
+            .set(&BytesN::from_array(&env, &ZK_VK_HASH), &vk_hash);
         env.storage()
             .instance()
             .set(&BytesN::from_array(&env, &ZK_VK_REG), &true);
